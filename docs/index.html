@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSC Stock Comments</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="filters" aria-label="Filters">
+      <div class="brand">
+        <h1>SSC Stock Comments</h1>
+        <p id="record-count">Loading records...</p>
+      </div>
+
+      <label for="stock-filter">Stock</label>
+      <select id="stock-filter" multiple size="10"></select>
+
+      <label for="year-filter">Year</label>
+      <select id="year-filter" multiple size="8"></select>
+
+      <label for="fmp-filter">FMP</label>
+      <select id="fmp-filter" multiple size="3"></select>
+
+      <label for="type-filter">Comment type</label>
+      <select id="type-filter" multiple size="8"></select>
+
+      <label for="search-filter">Text search</label>
+      <input id="search-filter" type="search" placeholder="model, recruitment, risk table...">
+
+      <div class="actions">
+        <button id="clear-filters" type="button">Clear</button>
+        <button id="copy-link" type="button">Copy state</button>
+      </div>
+    </aside>
+
+    <section class="results" aria-live="polite">
+      <div class="toolbar">
+        <div>
+          <strong id="shown-count">0</strong>
+          <span>matching comments</span>
+        </div>
+        <label>
+          Sort
+          <select id="sort-order">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="stock">Stock</option>
+          </select>
+        </label>
+      </div>
+      <div id="cards" class="cards"></div>
+    </section>
+  </main>
+
+  <template id="card-template">
+    <article class="comment-card">
+      <div class="meta-row">
+        <span class="stock"></span>
+        <span class="pill fmp"></span>
+        <span class="pill type"></span>
+      </div>
+      <p class="excerpt"></p>
+      <details>
+        <summary>Full paragraph</summary>
+        <p class="full-text"></p>
+      </details>
+      <div class="source-row">
+        <span class="source"></span>
+        <a class="pdf-link" target="_blank" rel="noopener">Open PDF page</a>
+      </div>
+    </article>
+  </template>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

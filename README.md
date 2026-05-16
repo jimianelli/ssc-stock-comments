@@ -1,0 +1,55 @@
+# SSC Stock Comments
+
+This repository is a page-aware database and lightweight web UI for searching North Pacific Council SSC report comments by stock, FMP, year, and comment type.
+
+## Contents
+
+- `data/processed/ssc_stock_comments.csv`: page-aware comment records for analysis.
+- `data/processed/ssc_stock_summary.csv`: stock/FMP summary counts.
+- `docs/`: static web UI suitable for local use or GitHub Pages.
+- `docs/pdfs/`: the unique source SSC report PDFs served by the web UI.
+- `scripts/build_data.py`: reproducible data builder using `pdftotext`.
+
+## Use The UI Locally
+
+From the repository root:
+
+```sh
+python3 -m http.server 8000 --directory docs
+```
+
+Then open:
+
+```text
+http://localhost:8000
+```
+
+The `Open page` links point to `docs/pdfs/<report>.pdf#page=<n>`, which opens the source PDF near the paragraph page.
+
+## Rebuild The Data
+
+Install Poppler if `pdftotext` is missing. On macOS with Homebrew:
+
+```sh
+brew install poppler
+```
+
+Then run:
+
+```sh
+python3 scripts/build_data.py
+```
+
+The script rebuilds both `data/processed/*.csv` and `docs/assets/comments.json`.
+
+## Data Fields
+
+- `stock`: normalized stock or stock complex.
+- `fmp`: `BSAI`, `GOA`, or `BSAI/GOA`.
+- `comment_type`: rule-based category such as `request`, `recommendation`, `support/concur`, or `concern`.
+- `year`, `month`, `source_file`, `page`: source metadata.
+- `page_url`: UI-ready link to the PDF page.
+- `excerpt`: card-friendly text.
+- `full_text`: full source paragraph.
+
+The extraction is intentionally auditable. Broad ecosystem paragraphs may match multiple stocks when they discuss several species; use `matched_terms`, `section`, `source_file`, and `page` during curation.
