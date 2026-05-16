@@ -292,7 +292,12 @@ def main() -> None:
             "comment_types": sorted({str(r["comment_type"]) for r in rows}),
         },
     }
-    (WEB_ASSETS / "comments.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    payload_json = json.dumps(payload, ensure_ascii=False)
+    (WEB_ASSETS / "comments.json").write_text(payload_json, encoding="utf-8")
+    (WEB_ASSETS / "comments-data.js").write_text(
+        f"window.SSC_COMMENTS_DATA = {payload_json};\n",
+        encoding="utf-8",
+    )
 
     counts = Counter((str(r["stock"]), str(r["fmp"])) for r in rows)
     years: dict[tuple[str, str], set[str]] = defaultdict(set)

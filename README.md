@@ -12,6 +12,8 @@ This repository is a page-aware database and lightweight web UI for searching No
 
 ## Use The UI Locally
 
+You can open `docs/index.html` directly in a browser. The repository includes `docs/assets/comments-data.js` so local `file://` use does not depend on browser permission to fetch JSON files.
+
 From the repository root:
 
 ```sh

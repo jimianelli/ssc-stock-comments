@@ -153,8 +153,11 @@ async function copyStateLink() {
 }
 
 async function init() {
-  const response = await fetch("assets/comments.json");
-  const payload = await response.json();
+  let payload = window.SSC_COMMENTS_DATA;
+  if (!payload) {
+    const response = await fetch("assets/comments.json");
+    payload = await response.json();
+  }
   state.records = payload.records;
   fillSelect(els.stock, payload.filters.stocks);
   fillSelect(els.year, payload.filters.years.reverse());
