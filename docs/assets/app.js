@@ -1,6 +1,8 @@
 const state = {
   records: [],
+  specs: [],
   filtered: [],
+  activeTab: "comments",
   pageSize: 80,
 };
 
@@ -12,11 +14,14 @@ const els = {
   search: document.querySelector("#search-filter"),
   sort: document.querySelector("#sort-order"),
   cards: document.querySelector("#cards"),
+  specs: document.querySelector("#specs"),
   shown: document.querySelector("#shown-count"),
+  shownLabel: document.querySelector("#shown-label"),
   total: document.querySelector("#record-count"),
   clear: document.querySelector("#clear-filters"),
   copy: document.querySelector("#copy-link"),
   template: document.querySelector("#card-template"),
+  tabs: Array.from(document.querySelectorAll(".tab-button")),
 };
 
 function selectedValues(select) {
@@ -24,11 +29,13 @@ function selectedValues(select) {
 }
 
 function fillSelect(select, values) {
+  const selected = new Set(selectedValues(select));
   select.replaceChildren();
   values.forEach((value) => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = value;
+    option.selected = selected.has(value);
     select.append(option);
   });
 }
@@ -40,8 +47,28 @@ function setSelected(select, values) {
   });
 }
 
+function uniqueSorted(values) {
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
 function recordText(record) {
   return `${record.stock} ${record.fmp} ${record.comment_type} ${record.section} ${record.excerpt} ${record.full_text}`.toLowerCase();
+}
+
+function specText(record) {
+  return `${record.stock} ${record.fmp} ${record.area} ${record.recommendation_year} ${record.report_year} ${record.source_file} ${record.table}`.toLowerCase();
+}
+
+function currentData() {
+  return state.activeTab === "specs" ? state.specs : state.records;
+}
+
+function updateFilterOptions() {
+  const records = currentData();
+  fillSelect(els.stock, uniqueSorted(records.map((record) => record.stock)));
+  fillSelect(els.year, uniqueSorted(records.map((record) => String(state.activeTab === "specs" ? record.recommendation_year : record.year))).reverse());
+  fillSelect(els.fmp, uniqueSorted(records.map((record) => record.fmp)));
+  els.type.disabled = state.activeTab === "specs";
 }
 
 function applyFilters() {
@@ -51,14 +78,24 @@ function applyFilters() {
   const types = new Set(selectedValues(els.type));
   const query = els.search.value.trim().toLowerCase();
 
-  state.filtered = state.records.filter((record) => {
-    if (stocks.size && !stocks.has(record.stock)) return false;
-    if (years.size && !years.has(String(record.year))) return false;
-    if (fmps.size && !fmps.has(record.fmp)) return false;
-    if (types.size && !types.has(record.comment_type)) return false;
-    if (query && !recordText(record).includes(query)) return false;
-    return true;
-  });
+  if (state.activeTab === "specs") {
+    state.filtered = state.specs.filter((record) => {
+      if (stocks.size && !stocks.has(record.stock)) return false;
+      if (years.size && !years.has(String(record.recommendation_year))) return false;
+      if (fmps.size && !fmps.has(record.fmp)) return false;
+      if (query && !specText(record).includes(query)) return false;
+      return true;
+    });
+  } else {
+    state.filtered = state.records.filter((record) => {
+      if (stocks.size && !stocks.has(record.stock)) return false;
+      if (years.size && !years.has(String(record.year))) return false;
+      if (fmps.size && !fmps.has(record.fmp)) return false;
+      if (types.size && !types.has(record.comment_type)) return false;
+      if (query && !recordText(record).includes(query)) return false;
+      return true;
+    });
+  }
 
   sortRecords();
   render();
@@ -68,15 +105,33 @@ function applyFilters() {
 function sortRecords() {
   const order = els.sort.value;
   state.filtered.sort((a, b) => {
-    if (order === "oldest") return Number(a.year) - Number(b.year) || a.stock.localeCompare(b.stock);
-    if (order === "stock") return a.stock.localeCompare(b.stock) || Number(b.year) - Number(a.year);
-    return Number(b.year) - Number(a.year) || a.stock.localeCompare(b.stock);
+    const yearA = Number(state.activeTab === "specs" ? a.recommendation_year : a.year);
+    const yearB = Number(state.activeTab === "specs" ? b.recommendation_year : b.year);
+    if (order === "oldest") return yearA - yearB || a.stock.localeCompare(b.stock);
+    if (order === "stock") return a.stock.localeCompare(b.stock) || yearB - yearA;
+    return yearB - yearA || a.stock.localeCompare(b.stock);
   });
 }
 
+function formatNumber(value) {
+  if (!value) return "n/a";
+  return Number(value).toLocaleString();
+}
+
 function render() {
+  if (state.activeTab === "specs") {
+    renderSpecs();
+  } else {
+    renderComments();
+  }
+}
+
+function renderComments() {
+  els.cards.classList.remove("hidden");
+  els.specs.classList.add("hidden");
   els.cards.replaceChildren();
   els.shown.textContent = state.filtered.length.toLocaleString();
+  els.shownLabel.textContent = "matching comments";
 
   const fragment = document.createDocumentFragment();
   state.filtered.slice(0, state.pageSize).forEach((record) => {
@@ -99,7 +154,7 @@ function render() {
     more.textContent = `Show next ${Math.min(80, state.filtered.length - state.pageSize)} comments`;
     more.addEventListener("click", () => {
       state.pageSize += 80;
-      render();
+      renderComments();
     });
     fragment.append(more);
   }
@@ -107,8 +162,55 @@ function render() {
   els.cards.append(fragment);
 }
 
+function renderSpecs() {
+  els.cards.classList.add("hidden");
+  els.specs.classList.remove("hidden");
+  els.specs.replaceChildren();
+  els.shown.textContent = state.filtered.length.toLocaleString();
+  els.shownLabel.textContent = "ABC/OFL rows";
+
+  const note = document.createElement("p");
+  note.className = "spec-note";
+  note.textContent = "Rows are extracted from machine-readable SSC recommendation tables; open the source page to audit the original table.";
+
+  const table = document.createElement("table");
+  table.className = "spec-table";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Stock</th>
+        <th>FMP</th>
+        <th>Area</th>
+        <th>Year</th>
+        <th>OFL</th>
+        <th>ABC</th>
+        <th>Report</th>
+        <th>Source</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+  state.filtered.forEach((record) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${record.stock}</td>
+      <td>${record.fmp}</td>
+      <td>${record.area}</td>
+      <td>${record.recommendation_year}</td>
+      <td class="numeric">${formatNumber(record.ofl)}</td>
+      <td class="numeric">${formatNumber(record.abc)}</td>
+      <td>${record.report_year}</td>
+      <td><a href="${record.page_url}" target="_blank" rel="noopener">${record.source_file}, p. ${record.page}</a></td>
+    `;
+    tbody.append(row);
+  });
+  els.specs.append(note, table);
+}
+
 function writeUrlState() {
   const params = new URLSearchParams();
+  params.set("tab", state.activeTab);
   const entries = [
     ["stock", selectedValues(els.stock)],
     ["year", selectedValues(els.year)],
@@ -125,6 +227,9 @@ function writeUrlState() {
 
 function readUrlState() {
   const params = new URLSearchParams(location.search);
+  state.activeTab = params.get("tab") === "specs" ? "specs" : "comments";
+  updateTabButtons();
+  updateFilterOptions();
   setSelected(els.stock, (params.get("stock") || "").split("|").filter(Boolean));
   setSelected(els.year, (params.get("year") || "").split("|").filter(Boolean));
   setSelected(els.fmp, (params.get("fmp") || "").split("|").filter(Boolean));
@@ -152,6 +257,37 @@ async function copyStateLink() {
   }, 1200);
 }
 
+function updateTabButtons() {
+  els.tabs.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === state.activeTab);
+  });
+}
+
+function setTab(tab) {
+  const selected = {
+    stock: selectedValues(els.stock),
+    year: [],
+    fmp: selectedValues(els.fmp),
+  };
+  state.activeTab = tab;
+  state.pageSize = 80;
+  updateTabButtons();
+  updateFilterOptions();
+  setSelected(els.stock, selected.stock);
+  setSelected(els.fmp, selected.fmp);
+  setSelected(els.year, selected.year);
+  applyFilters();
+}
+
+async function loadSpecifications() {
+  let payload = window.SSC_SPECIFICATIONS_DATA;
+  if (!payload) {
+    const response = await fetch("assets/specifications.json");
+    payload = await response.json();
+  }
+  return payload.records;
+}
+
 async function init() {
   let payload = window.SSC_COMMENTS_DATA;
   if (!payload) {
@@ -159,11 +295,9 @@ async function init() {
     payload = await response.json();
   }
   state.records = payload.records;
-  fillSelect(els.stock, payload.filters.stocks);
-  fillSelect(els.year, payload.filters.years.reverse());
-  fillSelect(els.fmp, payload.filters.fmps);
+  state.specs = await loadSpecifications();
   fillSelect(els.type, payload.filters.comment_types);
-  els.total.textContent = `${state.records.length.toLocaleString()} indexed comments`;
+  els.total.textContent = `${state.records.length.toLocaleString()} comments; ${state.specs.length.toLocaleString()} ABC/OFL rows`;
   readUrlState();
   applyFilters();
 }
@@ -173,6 +307,10 @@ async function init() {
     state.pageSize = 80;
     applyFilters();
   });
+});
+
+els.tabs.forEach((button) => {
+  button.addEventListener("click", () => setTab(button.dataset.tab));
 });
 
 els.search.addEventListener("input", () => {
