@@ -105,23 +105,23 @@ a:hover {
   padding: 22px clamp(18px, 4vw, 46px);
 }
 
-.tabs {
+.external-link-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  justify-content: flex-end;
   margin-bottom: 14px;
 }
 
-.tab-button {
-  width: auto;
+.external-link {
+  display: inline-flex;
+  align-items: center;
   min-height: 36px;
   padding: 7px 12px;
-}
-
-.tab-button.active {
+  border: 1px solid var(--accent);
+  border-radius: 6px;
   background: var(--accent);
-  border-color: var(--accent);
   color: #fff;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .toolbar {
@@ -151,54 +151,6 @@ a:hover {
   padding: 18px 0 40px;
 }
 
-.hidden {
-  display: none;
-}
-
-.specs {
-  overflow-x: auto;
-  padding: 18px 0 40px;
-}
-
-.spec-note {
-  margin: 0 0 12px;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.spec-table {
-  width: 100%;
-  min-width: 920px;
-  border-collapse: collapse;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.spec-table th,
-.spec-table td {
-  padding: 9px 10px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
-}
-
-.spec-table th {
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-}
-
-.spec-table td.numeric {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.spec-table tr:last-child td {
-  border-bottom: 0;
-}
 
 .comment-card {
   border: 1px solid var(--line);

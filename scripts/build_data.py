@@ -18,36 +18,6 @@ PDF_DIR = ROOT / "docs" / "pdfs"
 OUT = ROOT / "data" / "processed"
 WEB_ASSETS = ROOT / "docs" / "assets"
 
-AREA_VALUES = {
-    "AI",
-    "AK Total",
-    "BSAI",
-    "BSAI/GOA",
-    "Bogoslof",
-    "BS",
-    "BS/EAI",
-    "C",
-    "CAI",
-    "CAI/WAI",
-    "E",
-    "EAI",
-    "EAI/BS",
-    "EBS",
-    "EBS/EAI",
-    "EYAK/SEO",
-    "GOA Total",
-    "SEO",
-    "State GHL",
-    "Subtotal",
-    "Total",
-    "W",
-    "WAI",
-    "W/C",
-    "W/C/WYAK",
-    "W/C (+ WYAK for 2024 and 2025 only)",
-    "WYAK",
-}
-
 
 @dataclass(frozen=True)
 class Stock:
@@ -245,187 +215,16 @@ def make_excerpt(para: str, max_len: int = 520) -> str:
     return para[:max_len].rsplit(" ", 1)[0] + "..."
 
 
-def table_target_years(text: str, report_year: str) -> list[str]:
-    years = re.findall(r"\b(20\d{2})\b", text)
-    years = [year for year in years if year != report_year]
-    if len(years) >= 2:
-        return years[-2:]
-    if len(years) == 1:
-        return years
-    if report_year:
-        return [str(int(report_year) + 1), str(int(report_year) + 2)]
-    return []
-
-
-def table_fmp(text: str) -> str:
-    if re.search(r"Gulf of Alaska|GOA", text, re.I):
-        return "GOA"
-    if re.search(r"Bering Sea|Aleutian|BSAI|crab", text, re.I):
-        return "BSAI"
-    return ""
-
-
-def split_columns(line: str) -> list[str]:
-    line = line.replace("−", "-").strip()
-    line = re.sub(r"(?<=\d),(?=\s+\d{3}\b)", ",", line)
-    line = re.sub(r"(?<=\d),\s+(?=\d{3}\b)", ",", line)
-    return [part.strip() for part in re.split(r"\s{2,}", line) if part.strip()]
-
-
-def is_numberish(value: str) -> bool:
-    return bool(re.fullmatch(r"(?:n/a|-|[0-9][0-9,]*(?:\.[0-9]+)?)", value.strip(), re.I))
-
-
-def clean_number(value: str) -> str:
-    value = value.strip()
-    if value.lower() == "n/a" or value == "-":
-        return ""
-    return value.replace(",", "")
-
-
-def normalize_species_name(value: str) -> str:
-    value = re.sub(r"\s+", " ", value).strip(" :")
-    replacements = {
-        "Pacific Cod": "Pacific cod",
-        "Pacific Ocean perch": "Pacific ocean perch",
-        "Deep-Water Flatfish": "Deep-water flatfish",
-        "Shallow-Water Flatfish": "Shallow-water flatfish",
-        "Arrowtooth Flounder": "Arrowtooth flounder",
-        "Flathead Sole": "Flathead sole",
-        "Rex Sole": "Rex sole",
-        "Northern Rockfish": "Northern rockfish",
-        "Shortraker Rockfish": "Shortraker rockfish",
-        "Dusky Rockfish": "Dusky rockfish",
-        "Thornyhead Rockfish": "Thornyhead rockfish",
-        "Other Rockfish": "Other rockfish",
-        "Atka mackerel": "Atka mackerel",
-        "Blackspotted/Rougheye": "Blackspotted/Rougheye rockfish",
-        "Blackspotted/Rougheye Rockfish": "Blackspotted/Rougheye rockfish",
-        "Rougheye and Blackspotted Rockfish": "Rougheye and Blackspotted rockfish",
-    }
-    return replacements.get(value, value)
-
-
-def parse_specification_rows(pdf: Path, pages: list[str], report_year: str) -> list[dict[str, str | int]]:
-    records: list[dict[str, str | int]] = []
-    active = False
-    saw_header = False
-    context = ""
-    fmp = ""
-    target_years: list[str] = []
-    current_species = ""
-    pending_species = ""
-    continuation_area = ""
-    pdf_url = f"pdfs/{quote(pdf.name)}"
-
-    for page_number, page in enumerate(pages, start=1):
-        for raw_line in page.splitlines():
-            line = normalize_ws(raw_line)
-            if not line:
-                continue
-            if re.search(r"Table \d+.*SSC recommended.*OFL.*ABC", line, re.I):
-                active = True
-                saw_header = False
-                context = line
-                fmp = table_fmp(line)
-                target_years = table_target_years(line, report_year)
-                current_species = ""
-                pending_species = ""
-                continuation_area = ""
-                continue
-            if not active:
-                continue
-            if line.startswith("Sources:") or re.match(r"General Groundfish|C\d+\s+", line):
-                active = False
-                continue
-            if re.search(r"\bSpecies\b.*\bArea\b.*\bOFL\b.*\bABC\b", line):
-                saw_header = True
-                continue
-            if not saw_header:
-                if target_years and "Species" in line and "Area" in line:
-                    saw_header = True
-                continue
-            if re.match(r"^\d+\s+of\s+\d+\b", line) or "Bold text indicates" in line:
-                continue
-
-            columns = split_columns(raw_line)
-            if not columns:
-                continue
-            has_numbers = any(is_numberish(col) for col in columns)
-            if not has_numbers:
-                if re.search(r"[A-Za-z]", line) and not re.search(r"\b(OFL|ABC|Catch|TAC|Table|metric tons)\b", line):
-                    if current_species and len(line) < 20 and ("/" in current_species or "Blackspotted" in current_species):
-                        current_species = normalize_species_name(f"{current_species} {line}")
-                    else:
-                        pending_species = line if not pending_species else f"{pending_species} {line}"
-                continue
-
-            area_idx = None
-            if len(columns) > 1 and columns[0] == "Total" and columns[1] in AREA_VALUES:
-                continue
-            for idx, col in enumerate(columns[:4]):
-                if col in AREA_VALUES:
-                    area_idx = idx
-                    break
-            if area_idx is None:
-                if continuation_area and all(is_numberish(col) for col in columns):
-                    area = continuation_area
-                    species = current_species
-                    values = columns
-                else:
-                    continue
-            else:
-                area = columns[area_idx]
-                continuation_area = area if area.startswith("W/C") else ""
-                if area_idx == 0:
-                    species = pending_species or current_species
-                else:
-                    species = " ".join(columns[:area_idx])
-                values = columns[area_idx + 1 :]
-            species = normalize_species_name(species)
-            if not species or species.lower() in {"total", "subtotal"}:
-                continue
-            current_species = species
-            pending_species = ""
-            values = [value for value in values if is_numberish(value)]
-            if len(values) < 2 or not target_years:
-                continue
-            needed = 2 * len(target_years)
-            rec_values = values[-needed:]
-            if len(rec_values) < needed:
-                continue
-            for year, ofl, abc in zip(target_years, rec_values[0::2], rec_values[1::2]):
-                records.append(
-                    {
-                        "stock": species,
-                        "fmp": fmp,
-                        "area": area,
-                        "recommendation_year": year,
-                        "report_year": report_year,
-                        "source_file": pdf.name,
-                        "page": page_number,
-                        "ofl": clean_number(ofl),
-                        "abc": clean_number(abc),
-                        "units": "metric tons",
-                        "table": context,
-                        "page_url": f"{pdf_url}#page={page_number}",
-                    }
-                )
-    return records
-
-
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     WEB_ASSETS.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, str | int]] = []
-    specs: list[dict[str, str | int]] = []
     seen: set[tuple[str, str, str, int, str]] = set()
 
     for pdf in sorted(PDF_DIR.glob("*.pdf")):
         pages, page_blocks = report_pages(pdf)
         whole_text = "\n".join(pages)
         year, month = report_date(pdf.stem, whole_text)
-        specs.extend(parse_specification_rows(pdf, pages, year))
         context = ""
         section = ""
         pdf_url = f"pdfs/{quote(pdf.name)}"
@@ -528,39 +327,7 @@ def main() -> None:
                 }
             )
 
-    spec_fields = [
-        "stock",
-        "fmp",
-        "area",
-        "recommendation_year",
-        "report_year",
-        "source_file",
-        "page",
-        "ofl",
-        "abc",
-        "units",
-        "table",
-        "page_url",
-    ]
-    with (OUT / "ssc_abc_ofl_recommendations.csv").open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=spec_fields)
-        writer.writeheader()
-        writer.writerows(specs)
-
-    spec_payload = {
-        "records": specs,
-        "filters": {
-            "stocks": sorted({str(r["stock"]) for r in specs}),
-            "years": sorted({str(r["recommendation_year"]) for r in specs if r["recommendation_year"]}),
-            "fmps": sorted({str(r["fmp"]) for r in specs if r["fmp"]}),
-        },
-    }
-    (WEB_ASSETS / "specifications.json").write_text(json.dumps(spec_payload, ensure_ascii=False), encoding="utf-8")
-    (WEB_ASSETS / "specifications-data.js").write_text(
-        f"window.SSC_SPECIFICATIONS_DATA = {json.dumps(spec_payload, ensure_ascii=False)};\n",
-        encoding="utf-8",
-    )
-    print(f"Wrote {len(rows)} comment records and {len(specs)} OFL/ABC records from {len(list(PDF_DIR.glob('*.pdf')))} PDFs.")
+    print(f"Wrote {len(rows)} comment records from {len(list(PDF_DIR.glob('*.pdf')))} PDFs.")
 
 
 if __name__ == "__main__":

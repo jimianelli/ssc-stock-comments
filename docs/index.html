@@ -36,14 +36,15 @@
     </aside>
 
     <section class="results" aria-live="polite">
-      <nav class="tabs" aria-label="Data views">
-        <button class="tab-button active" type="button" data-tab="comments">SSC Comments</button>
-        <button class="tab-button" type="button" data-tab="specs">ABC/OFL Recommendations</button>
-      </nav>
+      <div class="external-link-row">
+        <a class="external-link" href="https://jimianelli.github.io/ABC_TAC/" target="_blank" rel="noopener">
+          Open ABC/TAC recommendations
+        </a>
+      </div>
       <div class="toolbar">
         <div>
           <strong id="shown-count">0</strong>
-          <span id="shown-label">matching comments</span>
+          <span>matching comments</span>
         </div>
         <label>
           Sort
@@ -55,7 +56,6 @@
         </label>
       </div>
       <div id="cards" class="cards"></div>
-      <div id="specs" class="specs hidden"></div>
     </section>
   </main>
 
@@ -79,7 +79,6 @@
   </template>
 
   <script src="assets/comments-data.js"></script>
-  <script src="assets/specifications-data.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

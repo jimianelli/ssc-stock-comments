@@ -6,7 +6,6 @@ This repository is a page-aware database and lightweight web UI for searching No
 
 - `data/processed/ssc_stock_comments.csv`: page-aware comment records for analysis.
 - `data/processed/ssc_stock_summary.csv`: stock/FMP summary counts.
-- `data/processed/ssc_abc_ofl_recommendations.csv`: machine-readable SSC recommendation table rows with OFL and ABC values.
 - `docs/`: static web UI suitable for local use or GitHub Pages.
 - `docs/pdfs/`: the unique source SSC report PDFs served by the web UI.
 - `scripts/build_data.py`: reproducible data builder using `pdftotext`.
@@ -29,7 +28,7 @@ http://localhost:8000
 
 The `Open page` links point to `docs/pdfs/<report>.pdf#page=<n>`, which opens the source PDF near the paragraph page.
 
-The UI has two views: SSC comment text and extracted ABC/OFL recommendation rows. The ABC/OFL view is limited to tables that are machine-readable in the PDFs; some older PDF tables are images and are intentionally omitted unless they can be audited from text.
+The UI links to the separate ABC/TAC app at <https://jimianelli.github.io/ABC_TAC/> for ABC and OFL recommendation tables.
 
 ## Publish On GitHub Pages
 
@@ -57,7 +56,7 @@ Then run:
 python3 scripts/build_data.py
 ```
 
-The script rebuilds `data/processed/*.csv`, `docs/assets/comments.json`, `docs/assets/comments-data.js`, `docs/assets/specifications.json`, and `docs/assets/specifications-data.js`.
+The script rebuilds `data/processed/*.csv`, `docs/assets/comments.json`, and `docs/assets/comments-data.js`.
 
 ## Data Fields
 
