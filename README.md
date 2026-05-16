@@ -26,6 +26,18 @@ http://localhost:8000
 
 The `Open page` links point to `docs/pdfs/<report>.pdf#page=<n>`, which opens the source PDF near the paragraph page.
 
+## Publish On GitHub Pages
+
+This repository is configured for public GitHub Pages deployment with `.github/workflows/pages.yml`. After pushing the repository to GitHub, set the repository Pages source to **GitHub Actions** under Settings -> Pages. Each push to `main` will publish the static app from `docs/`.
+
+The public URL will be:
+
+```text
+https://<github-user-or-org>.github.io/ssc-stock-comments/
+```
+
+If the repository is renamed, replace `ssc-stock-comments` in the URL with the GitHub repository name.
+
 ## Rebuild The Data
 
 Install Poppler if `pdftotext` is missing. On macOS with Homebrew:
