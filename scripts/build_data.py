@@ -83,6 +83,28 @@ ACTION_PATTERNS = {
 }
 
 
+ABC_BUFFER_PATTERNS = {
+    "maximum permissible ABC": re.compile(
+        r"\b(?:maximum|max)\s+permissible(?:\s+(?:ABC|levels?))?\b|\bmax\s*ABC\b",
+        re.I,
+    ),
+    "ABC buffer": re.compile(
+        r"\b(?:ABCs?|FABC|max\s*ABC|maximum permissible)\b.{0,90}\b(?:buffer|buffers|buffered)\b"
+        r"|\b(?:buffer|buffers|buffered)\b.{0,90}\b(?:ABCs?|FABC|max\s*ABC|maximum permissible)\b",
+        re.I,
+    ),
+    "ABC reduction": re.compile(
+        r"\b(?:ABCs?|FABC|max\s*ABC|maximum permissible)\b.{0,90}\b(?:reduction|reduced|reduce|lower|below|less than)\b"
+        r"|\b(?:reduction|reduced|reduce|lower|below|less than)\b.{0,90}\b(?:ABCs?|FABC|max\s*ABC|maximum permissible)\b",
+        re.I,
+    ),
+    "from maxABC": re.compile(
+        r"\bfrom\s+(?:the\s+)?(?:max\s*ABC|maximum permissible(?:\s+ABC)?)\b",
+        re.I,
+    ),
+}
+
+
 def normalize_ws(text: str) -> str:
     text = re.sub(r"-\n\s*", "", text)
     text = re.sub(r"\s+", " ", text)
@@ -209,6 +231,11 @@ def comment_type(para: str) -> str:
     return "context"
 
 
+def abc_buffer_terms(para: str) -> str:
+    matches = [name for name, pattern in ABC_BUFFER_PATTERNS.items() if pattern.search(para)]
+    return "; ".join(matches)
+
+
 def make_excerpt(para: str, max_len: int = 520) -> str:
     if len(para) <= max_len:
         return para
@@ -237,6 +264,7 @@ def main() -> None:
             if not matches:
                 continue
             ctype = comment_type(para)
+            buffer_terms = abc_buffer_terms(para)
             if ctype == "context" and "SSC" not in para and not re.search(r"\b(assessment|SAFE|OFL|ABC|model|risk table|harvest)\b", para, re.I):
                 continue
             for stock, aliases in matches:
@@ -258,6 +286,7 @@ def main() -> None:
                         "paragraph_index": idx,
                         "section": section,
                         "matched_terms": aliases,
+                        "abc_buffer_terms": buffer_terms,
                         "excerpt": make_excerpt(para),
                         "full_text": para,
                         "pdf_url": pdf_url,
@@ -277,6 +306,7 @@ def main() -> None:
         "paragraph_index",
         "section",
         "matched_terms",
+        "abc_buffer_terms",
         "excerpt",
         "full_text",
         "pdf_url",

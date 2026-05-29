@@ -65,6 +65,7 @@ The script rebuilds `data/processed/*.csv`, `docs/assets/comments.json`, and `do
 - `comment_type`: rule-based category such as `request`, `recommendation`, `support/concur`, or `concern`.
 - `year`, `month`, `source_file`, `page`: source metadata.
 - `page_url`: UI-ready link to the PDF page.
+- `abc_buffer_terms`: matched terminology for ABC buffers or reductions from maximum permissible ABC.
 - `excerpt`: card-friendly text.
 - `full_text`: full source paragraph.
 

@@ -26,8 +26,13 @@
       <label for="type-filter">Comment type</label>
       <select id="type-filter" multiple size="8"></select>
 
+      <label class="checkbox-filter">
+        <input id="buffer-filter" type="checkbox">
+        ABC buffer/reduction
+      </label>
+
       <label for="search-filter">Text search</label>
-      <input id="search-filter" type="search" placeholder="model, recruitment, risk table...">
+      <input id="search-filter" type="search" placeholder="maxABC, buffer, recruitment...">
 
       <div class="actions">
         <button id="clear-filters" type="button">Clear</button>
@@ -65,6 +70,7 @@
         <span class="stock"></span>
         <span class="pill fmp"></span>
         <span class="pill type"></span>
+        <span class="pill buffer-topic" hidden></span>
       </div>
       <p class="excerpt"></p>
       <details>

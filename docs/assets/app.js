@@ -9,6 +9,7 @@ const els = {
   year: document.querySelector("#year-filter"),
   fmp: document.querySelector("#fmp-filter"),
   type: document.querySelector("#type-filter"),
+  buffer: document.querySelector("#buffer-filter"),
   search: document.querySelector("#search-filter"),
   sort: document.querySelector("#sort-order"),
   cards: document.querySelector("#cards"),
@@ -41,7 +42,7 @@ function setSelected(select, values) {
 }
 
 function recordText(record) {
-  return `${record.stock} ${record.fmp} ${record.comment_type} ${record.section} ${record.excerpt} ${record.full_text}`.toLowerCase();
+  return `${record.stock} ${record.fmp} ${record.comment_type} ${record.section} ${record.abc_buffer_terms || ""} ${record.excerpt} ${record.full_text}`.toLowerCase();
 }
 
 function applyFilters() {
@@ -49,6 +50,7 @@ function applyFilters() {
   const years = new Set(selectedValues(els.year));
   const fmps = new Set(selectedValues(els.fmp));
   const types = new Set(selectedValues(els.type));
+  const bufferOnly = els.buffer.checked;
   const query = els.search.value.trim().toLowerCase();
 
   state.filtered = state.records.filter((record) => {
@@ -56,6 +58,7 @@ function applyFilters() {
     if (years.size && !years.has(String(record.year))) return false;
     if (fmps.size && !fmps.has(record.fmp)) return false;
     if (types.size && !types.has(record.comment_type)) return false;
+    if (bufferOnly && !record.abc_buffer_terms) return false;
     if (query && !recordText(record).includes(query)) return false;
     return true;
   });
@@ -84,6 +87,12 @@ function render() {
     node.querySelector(".stock").textContent = `${record.stock} (${record.year})`;
     node.querySelector(".fmp").textContent = record.fmp;
     node.querySelector(".type").textContent = record.comment_type;
+    const bufferTopic = node.querySelector(".buffer-topic");
+    if (record.abc_buffer_terms) {
+      bufferTopic.hidden = false;
+      bufferTopic.textContent = "ABC buffer";
+      bufferTopic.title = record.abc_buffer_terms;
+    }
     node.querySelector(".excerpt").textContent = record.excerpt;
     node.querySelector(".full-text").textContent = record.full_text;
     node.querySelector(".source").textContent = `${record.source_file}, page ${record.page}`;
@@ -119,6 +128,7 @@ function writeUrlState() {
     if (values.length) params.set(key, values.join("|"));
   });
   if (els.search.value.trim()) params.set("q", els.search.value.trim());
+  if (els.buffer.checked) params.set("abc_buffer", "1");
   const next = `${location.pathname}${params.toString() ? `?${params}` : ""}`;
   history.replaceState(null, "", next);
 }
@@ -129,6 +139,7 @@ function readUrlState() {
   setSelected(els.year, (params.get("year") || "").split("|").filter(Boolean));
   setSelected(els.fmp, (params.get("fmp") || "").split("|").filter(Boolean));
   setSelected(els.type, (params.get("type") || "").split("|").filter(Boolean));
+  els.buffer.checked = params.get("abc_buffer") === "1";
   els.search.value = params.get("q") || "";
 }
 
@@ -138,6 +149,7 @@ function clearFilters() {
       option.selected = false;
     });
   });
+  els.buffer.checked = false;
   els.search.value = "";
   state.pageSize = 80;
   applyFilters();
@@ -168,7 +180,7 @@ async function init() {
   applyFilters();
 }
 
-[els.stock, els.year, els.fmp, els.type, els.sort].forEach((el) => {
+[els.stock, els.year, els.fmp, els.type, els.buffer, els.sort].forEach((el) => {
   el.addEventListener("change", () => {
     state.pageSize = 80;
     applyFilters();
